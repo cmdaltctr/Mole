@@ -696,6 +696,10 @@ paginated_multi_select() {
                 # Save original view_indices to restore on cancel
                 local -a orig_view_indices=("${view_indices[@]}")
 
+                # Reset navigation position for filter mode
+                top_index=0
+                cursor_pos=0
+
                 while true; do
                     # Show filter prompt and current query
                     local filter_display="$filter_query"
@@ -736,7 +740,7 @@ paginated_multi_select() {
                         for ((i = 0; i < items_per_page; i++)); do
                             printf "${clear_line}\n" >&2
                         done
-                        printf "${clear_line}${GRAY}Press Esc to clear filter, Enter to apply${NC}\n" >&2
+                        printf "${clear_line}${GRAY}Press Esc to go back${NC}\n" >&2
                         printf "${clear_line}" >&2
                     else
                         # Show filtered results (same display logic as draw_menu)
@@ -762,42 +766,126 @@ paginated_multi_select() {
                         done
 
                         printf "${clear_line}\n" >&2
-                        printf "${clear_line}${GRAY}Press Esc to cancel, Enter to apply${NC}\n" >&2
+                        printf "${clear_line}${GRAY}Space: select • Enter: uninstall • Esc: back${NC}\n" >&2
                     fi
                     printf "${clear_line}" >&2
 
-                    # Read one character (with timeout for escape sequences)
-                    local fkey rest
-                    IFS= read -r -s -n 1 fkey 2>/dev/null || { fkey=""; break; }
-                    read_status=$?
+                    # Read key using read_key (same as main loop)
+                    local fkey
+                    fkey=$(read_key 2>/dev/null)
 
-                    if [[ $read_status -ne 0 ]]; then
-                        break
-                    fi
+                    # Handle read_key failure
+                    [[ -z "$fkey" ]] && continue
 
                     case "$fkey" in
-                        $'\x1b') # Escape key
-                            # Cancel filter - restore original view
+                        "QUIT") # Escape key (q/Q or Esc) - cancel filter
                             view_indices=("${orig_view_indices[@]}")
                             filter_query=""
+                            top_index=0
+                            cursor_pos=0
                             need_full_redraw=true
                             break
                             ;;
-                        $'\n' | $'\r') # Enter key
-                            # Apply filter and exit filter mode
-                            need_full_redraw=true
+                        "ENTER") # Enter key - select current item and confirm uninstall
+                            # Select the item at current cursor position
+                            local current_idx=$((top_index + cursor_pos))
+                            if [[ $current_idx -lt ${#view_indices[@]} ]]; then
+                                local real="${view_indices[current_idx]}"
+                                selected[real]=true
+                                ((selected_count++))
+
+                                # Confirm and exit with selection
+                                local -a selected_indices=()
+                                for ((i = 0; i < total_items; i++)); do
+                                    if [[ ${selected[i]} == true ]]; then
+                                        selected_indices+=("$i")
+                                    fi
+                                done
+
+                                local final_result=""
+                                if [[ ${#selected_indices[@]} -gt 0 ]]; then
+                                    local IFS=','
+                                    final_result="${selected_indices[*]}"
+                                fi
+
+                                trap - EXIT INT TERM
+                                MOLE_SELECTION_RESULT="$final_result"
+                                export MOLE_MENU_SORT_MODE="$sort_mode"
+                                export MOLE_MENU_SORT_REVERSE="$sort_reverse"
+                                restore_terminal
+                                return 0
+                            fi
                             break
                             ;;
-                        $'\x7f' | $'\x08') # Backspace/Delete
-                            # Remove last character from filter
+                        "SPACE") # Space key - toggle selection of current item
+                            local current_idx=$((top_index + cursor_pos))
+                            if [[ $current_idx -lt ${#view_indices[@]} ]]; then
+                                local real="${view_indices[current_idx]}"
+                                if [[ ${selected[real]} == true ]]; then
+                                    selected[real]=false
+                                    ((selected_count--))
+                                else
+                                    selected[real]=true
+                                    ((selected_count++))
+                                fi
+                            fi
+                            ;;
+                        "DELETE") # Backspace/Delete
                             if [[ -n "$filter_query" ]]; then
                                 filter_query="${filter_query%?}"
                             fi
                             ;;
-                        [[:print:]])
-                            # Add character to filter (limit to 50 chars)
+                        "UP") # Up arrow or k - navigate in filtered list
+                            if [[ $cursor_pos -gt 0 ]]; then
+                                ((cursor_pos--))
+                            elif [[ $top_index -gt 0 ]]; then
+                                ((top_index--))
+                            fi
+                            ;;
+                        "DOWN") # Down arrow or j - navigate in filtered list
+                            local visible_total=${#view_indices[@]}
+                            if [[ $visible_total -gt 0 ]] && [[ $((top_index + cursor_pos)) -lt $((visible_total - 1)) ]]; then
+                                if [[ $cursor_pos -lt $((items_per_page - 1)) ]]; then
+                                    ((cursor_pos++))
+                                else
+                                    ((top_index++))
+                                fi
+                            fi
+                            ;;
+                        "LEFT") # h key - add 'h' to filter
                             if [[ ${#filter_query} -lt 50 ]]; then
-                                filter_query+="$fkey"
+                                filter_query+="h"
+                            fi
+                            ;;
+                        "RIGHT") # l key - add 'l' to filter
+                            if [[ ${#filter_query} -lt 50 ]]; then
+                                filter_query+="l"
+                            fi
+                            ;;
+                        "TOUCHID") # t key - add 't' to filter
+                            if [[ ${#filter_query} -lt 50 ]]; then
+                                filter_query+="t"
+                            fi
+                            ;;
+                        "UPDATE") # u key - add 'u' to filter
+                            if [[ ${#filter_query} -lt 50 ]]; then
+                                filter_query+="u"
+                            fi
+                            ;;
+                        "MORE") # m key - add 'm' to filter
+                            if [[ ${#filter_query} -lt 50 ]]; then
+                                filter_query+="m"
+                            fi
+                            ;;
+                        "RETRY") # R key - add 'R' to filter
+                            if [[ ${#filter_query} -lt 50 ]]; then
+                                filter_query+="R"
+                            fi
+                            ;;
+                        CHAR:*) # Other printable character - add to filter
+                            local char="${fkey#CHAR:}"
+                            if [[ ${#filter_query} -lt 50 ]]; then
+                                filter_query+="$char"
                             fi
                             ;;
                     esac
