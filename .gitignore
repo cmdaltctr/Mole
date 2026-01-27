@@ -69,5 +69,9 @@ tests/tmp-*/
 tests/*.tmp
 tests/*.log
 
+# Node.js (semantic-release)
+node_modules/
+package-lock.json
+
 session.json
 run_tests.ps1
