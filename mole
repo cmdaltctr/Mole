@@ -903,32 +903,57 @@ interactive_main_menu() {
             "ENTER")
                 show_cursor
                 case $current_option in
-                    1) exec "$SCRIPT_DIR/bin/clean.sh" ;;
-                    2) exec "$SCRIPT_DIR/bin/uninstall.sh" ;;
-                    3) exec "$SCRIPT_DIR/bin/optimize.sh" ;;
-                    4) exec "$SCRIPT_DIR/bin/analyze.sh" ;;
-                    5) exec "$SCRIPT_DIR/bin/status.sh" ;;
+                    1) clear; "$SCRIPT_DIR/bin/clean.sh"; echo ""; echo -n "${GRAY}Press Enter to return to menu...${NC} "; read -r; clear ;;
+                    2) clear; "$SCRIPT_DIR/bin/uninstall.sh"; echo ""; echo -n "${GRAY}Press Enter to return to menu...${NC} "; read -r; clear ;;
+                    3) clear; "$SCRIPT_DIR/bin/optimize.sh"; echo ""; echo -n "${GRAY}Press Enter to return to menu...${NC} "; read -r; clear ;;
+                    4) clear; "$SCRIPT_DIR/bin/analyze.sh"; echo ""; echo -n "${GRAY}Press Enter to return to menu...${NC} "; read -r; clear ;;
+                    5) clear; "$SCRIPT_DIR/bin/status.sh"; echo ""; echo -n "${GRAY}Press Enter to return to menu...${NC} "; read -r; clear ;;
                 esac
                 ;;
             "CHAR:1")
                 show_cursor
-                exec "$SCRIPT_DIR/bin/clean.sh"
+                clear
+                "$SCRIPT_DIR/bin/clean.sh"
+                echo ""
+                echo -n "${GRAY}Press Enter to return to menu...${NC} "
+                read -r
+                clear
                 ;;
             "CHAR:2")
                 show_cursor
-                exec "$SCRIPT_DIR/bin/uninstall.sh"
+                clear
+                "$SCRIPT_DIR/bin/uninstall.sh"
+                echo ""
+                echo -n "${GRAY}Press Enter to return to menu...${NC} "
+                read -r
+                clear
                 ;;
             "CHAR:3")
                 show_cursor
-                exec "$SCRIPT_DIR/bin/optimize.sh"
+                clear
+                "$SCRIPT_DIR/bin/optimize.sh"
+                echo ""
+                echo -n "${GRAY}Press Enter to return to menu...${NC} "
+                read -r
+                clear
                 ;;
             "CHAR:4")
                 show_cursor
-                exec "$SCRIPT_DIR/bin/analyze.sh"
+                clear
+                "$SCRIPT_DIR/bin/analyze.sh"
+                echo ""
+                echo -n "${GRAY}Press Enter to return to menu...${NC} "
+                read -r
+                clear
                 ;;
             "CHAR:5")
                 show_cursor
-                exec "$SCRIPT_DIR/bin/status.sh"
+                clear
+                "$SCRIPT_DIR/bin/status.sh"
+                echo ""
+                echo -n "${GRAY}Press Enter to return to menu...${NC} "
+                read -r
+                clear
                 ;;
             "MORE")
                 show_cursor
